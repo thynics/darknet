@@ -584,6 +584,8 @@ void test_detector(char *datacfg, char *cfgfile, char *weightfile, char *filenam
     FileNode *head = (FileNode*)malloc(sizeof(FileNode));
     head->next = NULL;
     FileNode *cursor = head;
+    int count = 0;
+    int cur_index = 1;
 
     struct stat path_stat;
     stat(filename, &path_stat);
@@ -602,12 +604,14 @@ void test_detector(char *datacfg, char *cfgfile, char *weightfile, char *filenam
             new_node->filename = full_path;
             cursor->next = new_node;
             cursor = cursor->next;
+            count ++;
         }
     } else {
         FileNode *new_node = (FileNode*)malloc(sizeof(FileNode));
         new_node->next = NULL;
         new_node->filename = filename;
         head->next = new_node;
+        count ++;
     }
 
     float total_time = 0.f;
@@ -633,7 +637,7 @@ void test_detector(char *datacfg, char *cfgfile, char *weightfile, char *filenam
         //printf("%d\n", nboxes);
         //if (nms) do_nms_obj(boxes, probs, l.w*l.h*l.n, l.classes, nms);
         if (nms) do_nms_sort(dets, nboxes, l.classes, nms);
-        draw_detections(im, dets, nboxes, thresh, names, alphabet, l.classes);
+        // draw_detections(im, dets, nboxes, thresh, names, alphabet, l.classes);
         free_detections(dets, nboxes);
         if(outfile){
             //save_image(im, outfile);
@@ -649,6 +653,7 @@ void test_detector(char *datacfg, char *cfgfile, char *weightfile, char *filenam
         free_image(im);
         free_image(sized);
         // if (filename) break;
+        printf("\rProcess: %d/%d", cur_index++, count);
     }
     printf("%s: Predicted in %f seconds.\n", input, total_time);
 }
