@@ -653,9 +653,9 @@ void test_detector(char *datacfg, char *cfgfile, char *weightfile, char *filenam
         free_image(im);
         free_image(sized);
         // if (filename) break;
-        printf("\rProcess: %d/%d", cur_index++, count);
+        printf("\rProcess: %d/%d\n", cur_index++, count);
     }
-    printf("%s: Predicted in %f seconds.\n", input, total_time);
+    printf("%s: Predicted in %f seconds.\n", filename, total_time);
 }
 
 /*
