@@ -1,4 +1,6 @@
 #include "darknet.h"
+#include <sys/stat.h>
+#include <dirent.h>
 
 static int coco_ids[] = {1,2,3,4,5,6,7,8,9,10,11,13,14,15,16,17,18,19,20,21,22,23,24,25,27,28,31,32,33,34,35,36,37,38,39,40,41,42,43,44,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,67,70,72,73,74,75,76,77,78,79,80,81,82,84,85,86,87,88,89,90};
 
@@ -559,6 +561,11 @@ void validate_detector_recall(char *cfgfile, char *weightfile)
 }
 
 
+typedef struct FileNode {
+    char *filename;
+    struct FileNode *next;
+} FileNode;
+
 void test_detector(char *datacfg, char *cfgfile, char *weightfile, char *filename, float thresh, float hier_thresh, char *outfile, int fullscreen)
 {
     list *options = read_data_cfg(datacfg);
@@ -573,16 +580,40 @@ void test_detector(char *datacfg, char *cfgfile, char *weightfile, char *filenam
     char buff[256];
     char *input = buff;
     float nms=.45;
-    while(1){
-        if(filename){
-            strncpy(input, filename, 256);
-        } else {
-            printf("Enter Image Path: ");
-            fflush(stdout);
-            input = fgets(input, 256, stdin);
-            if(!input) return;
-            strtok(input, "\n");
+
+    FileNode *head = (FileNode*)malloc(sizeof(FileNode));
+    head->next = NULL;
+    FileNode *cursor = head;
+
+    struct stat path_stat;
+    stat(filename, &path_stat);
+    if(S_ISDIR(path_stat.st_mode)){
+        // is dir
+        DIR *dir = opendir(filename);
+        struct dirent *entry;
+        while ((entry = readdir(dir)) != NULL) {
+            if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
+                continue;
+            }
+            FileNode *new_node = (FileNode*)malloc(sizeof(FileNode));
+            new_node->next = NULL;
+            char full_path[1024];
+            snprintf(full_path, sizeof(full_path), "%s/%s", filename, entry->d_name);
+            new_node->filename = full_path;
+            cursor->next = new_node;
+            cursor = cursor->next;
         }
+    } else {
+        FileNode *new_node = (FileNode*)malloc(sizeof(FileNode));
+        new_node->next = NULL;
+        new_node->filename = filename;
+        head->next = new_node;
+    }
+
+    float total_time = 0.f;
+    while(head->next != NULL){
+        strncpy(input, head->next->filename, 256);
+        head = head->next;
         image im = load_image_color(input,0,0);
         image sized = letterbox_image(im, net->w, net->h);
         //image sized = resize_image(im, net->w, net->h);
@@ -595,7 +626,8 @@ void test_detector(char *datacfg, char *cfgfile, char *weightfile, char *filenam
         float *X = sized.data;
         time=what_time_is_it_now();
         network_predict(net, X);
-        printf("%s: Predicted in %f seconds.\n", input, what_time_is_it_now()-time);
+        // printf("%s: Predicted in %f seconds.\n", input, what_time_is_it_now()-time);
+        total_time += (what_time_is_it_now()-time);
         int nboxes = 0;
         detection *dets = get_network_boxes(net, im.w, im.h, thresh, hier_thresh, 0, 1, &nboxes);
         //printf("%d\n", nboxes);
@@ -604,10 +636,10 @@ void test_detector(char *datacfg, char *cfgfile, char *weightfile, char *filenam
         draw_detections(im, dets, nboxes, thresh, names, alphabet, l.classes);
         free_detections(dets, nboxes);
         if(outfile){
-            save_image(im, outfile);
+            //save_image(im, outfile);
         }
         else{
-            save_image(im, "predictions");
+            //save_image(im, "predictions");
 #ifdef OPENCV
             make_window("predictions", 512, 512, 0);
             show_image(im, "predictions", 0);
@@ -618,6 +650,7 @@ void test_detector(char *datacfg, char *cfgfile, char *weightfile, char *filenam
         free_image(sized);
         if (filename) break;
     }
+    printf("%s: Predicted in %f seconds.\n", input, total_time);
 }
 
 /*
