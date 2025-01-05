@@ -1,4 +1,4 @@
-GPU=0
+GPU=1
 CUDNN=0
 OPENCV=0
 OPENMP=0
@@ -19,9 +19,9 @@ ALIB=libdarknet.a
 EXEC=darknet
 OBJDIR=./obj/
 
-CC=gcc
-CPP=g++
-NVCC=nvcc 
+CC=gcc-8
+CPP=g++-8
+NVCC=nvcc --compiler-bindir=/usr/bin/gcc-8
 AR=ar
 ARFLAGS=rcs
 OPTS=-Ofast
