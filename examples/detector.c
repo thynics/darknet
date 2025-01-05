@@ -648,7 +648,7 @@ void test_detector(char *datacfg, char *cfgfile, char *weightfile, char *filenam
 
         free_image(im);
         free_image(sized);
-        if (filename) break;
+        // if (filename) break;
     }
     printf("%s: Predicted in %f seconds.\n", input, total_time);
 }
